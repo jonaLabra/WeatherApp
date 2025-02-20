@@ -2,7 +2,7 @@ import Home from '@/screens/home';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import {  SafeAreaView, View } from 'react-native';
 import 'react-native-reanimated';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -24,8 +24,11 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={{backgroundColor:'white', flex: 1}}>
-        <Home />
-    </View>
+    <SafeAreaView style={{ flex: 1 }}>
+  <View style={{ flex: 1, backgroundColor: "white" }}>
+    
+  <Home />
+  </View>
+</SafeAreaView>
   );
 }

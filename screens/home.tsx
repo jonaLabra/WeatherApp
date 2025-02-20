@@ -1,66 +1,199 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator, FlatList, StyleSheet } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, ActivityIndicator, FlatList, StyleSheet,Dimensions, TextInput,Image, Pressable} from "react-native";
+import * as Location from "expo-location";
+import { getWeatherForecast, searchCity } from "@/services/apiService";
+
+const { width, height } = Dimensions.get("window");
 
 export default function Home () {
-const [forecast, setForecast] = useState([]);
-const [loading, setLoading] = useState(true);
+    const [query, setQuery] = useState("");
+    const [cities, setCities] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [showListCities, setShowCities] = useState(false);
+    const [forecast, setForecast] = useState([]);
+    const [selectedCity, setSelectedCity] = useState(null);
+    const [error, setError] = useState('');
+    const [backgroundColor, setBackgroundColor] = useState("#fff");
+    const [weatherType, setWeatherType] = useState("");
 
-// Coordenadas de Ciudad de México (Cambia por las tuyas)
-const LAT = "19.4326";
-const LON = "-99.1332";
+  const handleSearch = async (text: string) => {
+    setQuery(text);
+    if (text.length > 2) {
+      setLoading(true);
+      const results = await searchCity(text);
+      setCities(results);
+      setLoading(false);
+      setShowCities(true);
+    } else {
+      setCities([]);
+    }
+  };
+  
+    const fetchWeather = async (city: any) => {
+        var data;
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setError("Permission to access location was denied");
+          setLoading(false);
+          return;
+        }
+  
+        let location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude, } = location.coords;
+  
+        if (city !== null) {
+        data = await getWeatherForecast(city.lat, city.long);
+        } else {
+            data = await getWeatherForecast(latitude, longitude);
+        }
+        if (data) {
+          setWeatherType(data.list[0].weather[0].main);
+          setForecast(data.list);
+        } else {
+          setError("Failed to fetch weather data");
+        }
+        setLoading(false);
+      };
 
 useEffect(() => {
-const fetchWeather = async () => {
-const API_KEY = "a737143c328f1513918788a1e90fab3b";
-try {
-const response = await fetch(
-`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&exclude=current,minutely,hourly,alerts&appid=${API_KEY}&units=metric`
-);
-const data = await response.json();
-console.log(data);
-setForecast(data.daily);
-setLoading(false);
-} catch (error) {
-console.error("Error obteniendo el pronóstico:", error);
-}
-};
-
-fetchWeather();
+fetchWeather(null);
 }, []);
 
-return (
-<View style={styles.container}>
-{loading ? (
-<ActivityIndicator size="large" color="#0000ff" />
-) : (
-<FlatList
-data={forecast}
-keyExtractor={(item, index) => index.toString()}
-renderItem={({ item }) => (
-<View style={styles.card}>
+useEffect(() => {
+  switch (weatherType) {
+    case "Clear":
+      setBackgroundColor("#FFD700");
+      break;
+    case "Clouds":
+      setBackgroundColor("#B0C4DE");
+      break;
+    case "Rain":
+      setBackgroundColor("#778899");
+      break;
+    case "Snow":
+      setBackgroundColor("#E0FFFF");
+      break;
+    default:
+      setBackgroundColor("#87CEEB");
+      break;
+  }
+}, [weatherType]);
 
-<Text style={styles.date}>
-{new Date(item.dt * 1000).toLocaleDateString()}
-</Text>
-<Text>Temp: {item.temp.day}°C</Text>
-<Text>Min: {item.temp.min}°C / Max: {item.temp.max}°C</Text>
-<Text>Condición: {item.weather[0].description}</Text>
-</View>
-)}
-/>
-)}
-</View>
-);
+if (loading) {
+    return <ActivityIndicator size="large" color="#0000ff" />;
+  }
+
+  if (error) {
+    return <Text>Error: {error}</Text>;
+  }
+
+
+return (
+    <View style={[styles.container,{ backgroundColor }]}>
+      <TextInput
+        placeholder="Search for a city..."
+        value={query}
+        onChangeText={setQuery}
+        onSubmitEditing={({nativeEvent: {text}}) => handleSearch(text)}
+        returnKeyType="search"
+        style={{
+            height: 50,
+            borderWidth: 1,
+            borderColor: "#ccc",
+            borderRadius: 10,
+            paddingHorizontal: 15,
+            fontSize: 16,
+            backgroundColor: "#fff",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+        }}
+      />
+
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+
+        {showListCities && 
+      <FlatList
+        data={cities}
+        keyExtractor={(item) => item['id']}
+        renderItem={({ item }) => (
+          
+          <Pressable
+          
+          style={{
+            padding: 10,
+            borderBottomWidth: 1,
+            backgroundColor: "#f0f0f0",
+          }}
+          onPress={() => {
+            fetchWeather(item);
+            setSelectedCity(item);
+            setShowCities(false);
+        }}
+          >
+          <Text>{item['display']}</Text>
+          </Pressable>
+        )}
+      />}
+
+      {!showListCities && forecast.length > 0 && (
+            <View> 
+
+
+      <Text style={{ fontSize: 20, padding: 40, fontWeight: "bold" }}>Clima en {selectedCity !== null ? selectedCity['display'] : 'Ubicación Actual'}</Text>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        pagingEnabled
+          data={forecast}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.date}>
+                FECHA: {new Date(item['dt'] * 1000).toLocaleDateString()}
+              </Text>
+              <Image
+                source={{
+                    uri: `https://openweathermap.org/img/wn/${item['weather'][0]['icon']}@2x.png`,
+                }}
+                style={{ width: 80, height: 80 }} />
+
+              <Text>Temp:  {item['main']['temp']}
+                °C</Text>
+              <Text>Min: 
+                {item['main']['temp_min']}
+                °C / Max: 
+                {item['main']['temp_max']}
+                °C</Text>
+              <Text>Condición:  
+                {item['weather'][0]['description']}
+                </Text>
+            </View>
+          )}
+        />
+        </View>
+      )}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20, backgroundColor:'blue' },
+container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20, paddingTop: 40 },
 card: {
-backgroundColor: "#f1f1f1",
-padding: 15,
-borderRadius: 10,
-marginBottom: 10,
-width: "100%",
+  width: width * 0.8,
+  height: height * 0.3,
+  backgroundColor: "#fff",
+  borderRadius: 10,
+  padding: 20,
+  marginHorizontal: 10,
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  elevation: 5,
 },
 date: { fontSize: 18, fontWeight: "bold" },
 });
