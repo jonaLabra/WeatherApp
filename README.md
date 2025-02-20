@@ -16,14 +16,12 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
     npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Download Expo app
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+   - Android: (https://play.google.com/store/apps/details?id=host.exp.exponent&utm_source=latam_Med)
+   - IOS: (https://apps.apple.com/mx/app/expo-go/id982107779)
+  
+4. Read qr code with a camera app.
 
 ## Get a fresh project
 
